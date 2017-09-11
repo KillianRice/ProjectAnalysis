@@ -1,3 +1,22 @@
+#==============================================================================
+# This python script mimics the Data folder system (Raw_Data, Analysis, etc.) and
+# copies the scans specified in ProjectFiles.txt into a single Raw_Data folder so
+# that a single analysis program can be run on all the relevant raw data files at
+# once. 
+# 
+# This script needs to be placed in a project subfolder. 
+# 
+# Example original Data folder structure:
+#   U:\DOCUMENTS\Data\Analysis\87Sr\2017.09.11_87Sr_n76_Rydberg_Spectroscopy
+#   U:\DOCUMENTS\Raw_Data\87Sr\2017.09.11
+# 
+# Example Project subfolder of where this script should be placed:
+#   U:\DOCUMENTS\Projects\Test_Project
+#
+# NOTES:
+#   2017.09.11 - Improved comments. Now sorting by date and timestamp. (WIP = work in progress)
+#==============================================================================
+
 import os
 import datetime
 import pandas as pd
@@ -13,18 +32,32 @@ ROOT = os.path.dirname(DIR_PROJ)
 DIR_ORIG = os.path.join(ROOT, 'Data')
 DIR_ORIG_RAW_DATA = os.path.join(DIR_ORIG, 'Raw_Data')
 
-#Directory for where to copy the relevant Raw_Data.
+# Directory for where to copy the relevant Raw_Data.
 DIR_PROJ_RAW_DATA = os.path.join(CWD, 'Raw_Data')
 
-#Directory for project analysis folder.
+# Directory for project analysis folder.
 DIR_PROJ_ANALYSIS = os.path.join(CWD, 'Analysis')
 
-#Read in the list of scans to search for
-projectFileList = pd.read_csv('ProjectFiles.txt', sep = '\t', header = None,
-                              names = ['Date', 'Isotope', 'Scan'],
+#==============================================================================
+# User options
+#==============================================================================
+# (WIP - 2017.09.11) If no analysis folder name is specified, use dateWithPeriods as analysis folder name. 
+analysisName = ''
+if not analysisName:
+    analysisName = dateWithPeriods
+
+#==============================================================================
+# Reading in the scans to search for listed in ProjectFiles.txt and sort by date and timestamp. 
+#==============================================================================
+projectFileList = pd.read_csv('ProjectFiles.txt', sep = '\t', 
+                              header = 0,
                               comment = '%')
 
-#Get the isotopes used in scans and create isotope project subfolders in Raw_Data and Analysis
+projectFileList = projectFileList.sort_values(by = ['Date', 'Timestamp'], ascending = [True, True])
+
+#==============================================================================
+# Get the isotopes used in scans and create isotope project subfolders in Raw_Data and Analysis
+#==============================================================================
 for i in range(0, len(projectFileList.Isotope.unique())):
     isotope = projectFileList.Isotope.unique()[i]
     
@@ -34,11 +67,11 @@ for i in range(0, len(projectFileList.Isotope.unique())):
     if not os.path.exists(TEMP_PROJ_RAW_DATA):
         os.makedirs(TEMP_PROJ_RAW_DATA)
         
-    #Analysis folder name is the date for now...
+    # Analysis folder name is the date for now...
     if not os.path.exists(TEMP_PROJ_ANALYSIS):
         os.makedirs(TEMP_PROJ_ANALYSIS)
         
-    #create the master batch files
+    # Create the master batch files
     proj_master_batch_atom = os.path.join(TEMP_PROJ_RAW_DATA, 'Files_' + dateWithoutPeriods + '.txt')
     proj_master_batch_bg = os.path.join(TEMP_PROJ_RAW_DATA, 'Files_' + dateWithoutPeriods + '_Bg.txt')
     proj_master_batch_counts = os.path.join(TEMP_PROJ_RAW_DATA, 'Files_' + dateWithoutPeriods + '_Counts.txt')
@@ -64,39 +97,45 @@ for i in range(0, len(projectFileList.Isotope.unique())):
         f = open(proj_master_batch_counts,'w+')
         f.close()
 
-#Loop through each scan listed in ProjectFiles and copy from relevant master batch file into project master batch file
-for index, row in projectFileList.sort_values(['Date'], ascending = [True]).iterrows():
+#==============================================================================
+# Loop through each scan listed in ProjectFiles and copy from relevant master batch file into project master batch file
+#==============================================================================
+for index, row in projectFileList.iterrows():
     PATH_ORIG_SCAN = os.path.join(DIR_ORIG_RAW_DATA, row['Isotope'], row['Date'])
     PATH_PROJ_SCAN = os.path.join(DIR_PROJ_RAW_DATA, row['Isotope'], dateWithPeriods)
     
-    #Path to original master batch file
+    # Path to original master batch file
     orig_master_batch_atom = os.path.join(PATH_ORIG_SCAN, 'Files_' + row['Date'].replace('.','') + '.txt')
     orig_master_batch_bg = os.path.join(PATH_ORIG_SCAN, 'Files_' + row['Date'].replace('.','') + '_Bg.txt')
     orig_master_batch_counts = os.path.join(PATH_ORIG_SCAN, 'Files_' + row['Date'].replace('.','') + '_Counts.txt')
     
-    #Path to project master batch file
+    # Path to project master batch file
     proj_master_batch_atom = os.path.join(PATH_PROJ_SCAN, 'Files_' + dateWithoutPeriods + '.txt')
     proj_master_batch_bg = os.path.join(PATH_PROJ_SCAN, 'Files_' + dateWithoutPeriods + '_Bg.txt')
     proj_master_batch_counts = os.path.join(PATH_PROJ_SCAN, 'Files_' + dateWithoutPeriods + '_Counts.txt')
     
+    # Open the original master batch file and look for row with matching scan name. If present, copy line to project master batch file. 
     with open(orig_master_batch_atom) as orig_f:
         for line in orig_f:
             if row['Scan'] in line:
                 with open(proj_master_batch_atom, 'a') as proj_f:
                     proj_f.write(line)
- 
+     
+    # Open the original master batch file (background)  and look for row with matching scan name. If present, copy line to project master batch file (background). 
     with open(orig_master_batch_bg) as orig_f:
         for line in orig_f:
             if row['Scan'] in line:
                 with open(proj_master_batch_bg, 'a') as proj_f:
                     proj_f.write(line)
  
+    # Open the original master batch file (counts)  and look for row with matching scan name. If present, copy line to project master batch file (counts). 
     with open(orig_master_batch_counts) as orig_f:
         for line in orig_f:
             if row['Scan'] in line:
                 with open(proj_master_batch_counts, 'a') as proj_f:
                     proj_f.write(line)
 
+    # Copy all raw data files associated with the scan name (using *-wildcard to identify related files). 
     for file in glob.glob(os.path.join(PATH_ORIG_SCAN, row['Scan'] + '*')):
         print(file)
         shutil.copy(file, PATH_PROJ_SCAN)
