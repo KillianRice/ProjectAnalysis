@@ -1,6 +1,6 @@
 #==============================================================================
 # This python script mimics the Data folder system (Raw_Data, Analysis, etc.) and
-# copies the scans specified in ProjectFiles.txt into a single Raw_Data folder so
+# copies the scans specified in ScanList.txt into a single Raw_Data folder so
 # that a single analysis program can be run on all the relevant raw data files at
 # once. 
 # 
@@ -47,9 +47,9 @@ if not analysisName:
     analysisName = dateWithPeriods
 
 #==============================================================================
-# Reading in the scans to search for listed in ProjectFiles.txt and sort by date and timestamp. 
+# Reading in the scans to search for listed in ScanList.txt and sort by date and timestamp. 
 #==============================================================================
-projectFileList = pd.read_csv('ProjectFiles.txt', sep = '\t', 
+projectFileList = pd.read_csv('ScanList.txt', sep = '\t', 
                               header = 0,
                               comment = '%')
 
@@ -98,7 +98,7 @@ for i in range(0, len(projectFileList.Isotope.unique())):
         f.close()
 
 #==============================================================================
-# Loop through each scan listed in ProjectFiles and copy from relevant master batch file into project master batch file
+# Loop through each scan listed in ScanList and copy from relevant master batch file into project master batch file
 #==============================================================================
 for index, row in projectFileList.iterrows():
     PATH_ORIG_SCAN = os.path.join(DIR_ORIG_RAW_DATA, row['Isotope'], row['Date'])
