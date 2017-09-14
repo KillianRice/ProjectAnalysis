@@ -14,7 +14,8 @@
 #   U:\DOCUMENTS\Projects\Test_Project
 #
 # NOTES:
-#   2017.09.14 - Using ScanList.txt instead of ProjectFiles.txt as list of scans to search for. 
+#   2017.09.14 - Using ScanList.txt instead of ProjectFiles.txt as list of scans to search for. Reorganized
+#                   the order in which it creates the project master batch files for each isotope. 
 #   2017.09.11 - Improved comments. Now sorting by date and timestamp. (WIP = work in progress)
 #==============================================================================
 
@@ -75,12 +76,12 @@ for i in range(0, len(scanFileList.Isotope.unique())):
 #==============================================================================
 # Loop through each scan listed in ScanList.txt and copy from relevant line from original master batch file into project master batch file
 #==============================================================================
-new_master_batch_atom = ''
-new_master_batch_bg = ''
-new_master_batch_counts = ''
-
 for i in range(0, len(scanFileList.Isotope.unique())):
     isotope = scanFileList.Isotope.unique()[i]
+    
+    new_master_batch_atom = ''
+    new_master_batch_bg = ''
+    new_master_batch_counts = ''
     
     # Idea to imrpove - loop throuch the isotopes separately...
     for index, row in scanFileList[scanFileList.Isotope == isotope].iterrows():
